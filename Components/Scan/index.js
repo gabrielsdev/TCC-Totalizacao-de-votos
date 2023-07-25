@@ -2,6 +2,7 @@ import React, { Component, Fragment } from 'react';
 import { TouchableOpacity, Text, Linking, View, Image, ImageBackground, BackHandler } from 'react-native';
 import QRCodeScanner from 'react-native-qrcode-scanner';
 import styles from './scanStyle';
+import registrar from './enviaParaBlockchain.js';
 
 class Scan extends Component {
     constructor(props) {
@@ -9,16 +10,25 @@ class Scan extends Component {
         this.state = {
             scan: false,
             ScanResult: false,
-            result: null
+            result: null,
+            idHash: ""
         };
     }
-    onSuccess = (e) => {
+    onSuccess = async (e) => {
         const check = e.data.substring(0, 4);
         console.log('scanned data' + check);
+        console.log("oooi");
+        console.log(this.state.idHash);
+        console.log("oooi");
         this.setState({
             result: e,
             scan: false,
             ScanResult: true
+        })
+        const {idHash, res} = await registrar(this.state.idHash, e.data);
+        console.log(res);
+        this.setState({
+            idHash: idHash
         })
         if (check === 'http') {
             Linking.openURL(e.data).catch(err => console.error('An error occured', err));
