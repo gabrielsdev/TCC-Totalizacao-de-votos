@@ -1,6 +1,7 @@
 import React, { Component, Fragment } from 'react';
-import { TouchableOpacity, Text, Linking, View, Image, ImageBackground, BackHandler } from 'react-native';
+import { ScrollView, TouchableOpacity, Text, View, Image, ImageBackground } from 'react-native';
 import QRCodeScanner from 'react-native-qrcode-scanner';
+import Clipboard from '@react-native-clipboard/clipboard';
 import styles from './scanStyle';
 import registrar from './enviaParaBlockchain.js';
 
@@ -11,80 +12,96 @@ class Scan extends Component {
             scan: false,
             ScanResult: false,
             result: null,
-            idHash: ""
+            idHash: "",
+            statusreceipt: false,
+            resultSC: []
         };
     }
     onSuccess = async (e) => {
         const check = e.data.substring(0, 4);
-        console.log('scanned data' + check);
-        console.log("oooi");
-        console.log(this.state.idHash);
-        console.log("oooi");
+        if(check != 'QRBU'){return}
         this.setState({
             result: e,
             scan: false,
             ScanResult: true
         })
-        const {idHash, res} = await registrar(this.state.idHash, e.data);
+        const {idHash, statusreceipt, res} = await registrar(this.state.idHash, e.data);
+        console.log(statusreceipt);
         console.log(res);
         this.setState({
-            idHash: idHash
+            idHash: idHash,
+            result: e,
+            scan: false,
+            ScanResult: true,
+            resultSC: res,
+            statusreceipt: true
         })
-        if (check === 'http') {
-            Linking.openURL(e.data).catch(err => console.error('An error occured', err));
-        } else {
-            this.setState({
-                result: e,
-                scan: false,
-                ScanResult: true
-            })
-        }
     }
     activeQR = () => {
-        this.setState({ scan: true })
+        this.setState({ scan: true, statusreceipt: false })
     }
     scanAgain = () => {
         this.setState({ scan: true, ScanResult: false })
     }
+    home = () => {
+        this.setState({ scan: false, ScanResult: false })
+    }
     render() {
-        const { scan, ScanResult, result } = this.state
+        const { scan, ScanResult, result, resultSC, statusreceipt } = this.state
         return (
             <View style={styles.scrollViewStyle}>
                 <Fragment>
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={()=> BackHandler.exitApp()}>
-                            <Image source={require('../../assets/back.png')} style={{height: 36, width: 36}}></Image>
+                        <TouchableOpacity onPress={()=> this.home()}>
+                            <Image source={require('../../assets/home.png')} style={{height: 36, width: 36}}></Image>
                         </TouchableOpacity>
-                        <Text style={styles.textTitle}>Scan QR Code</Text>
+                        <Text style={styles.textTitle}>Início</Text>
                     </View>
                     {!scan && !ScanResult &&
                         <View style={styles.cardView} >
                             <Image source={require('../../assets/camera.png')} style={{height: 36, width: 36}}></Image>
-                            <Text numberOfLines={8} style={styles.descText}>Please move your camera {"\n"} over the QR Code</Text>
+                            <Text numberOfLines={8} style={styles.descText}>Por favor, mova sua camêra {"\n"} sobre o QR Code</Text>
                             <Image source={require('../../assets/qr-code.png')} style={{margin: 20}}></Image>
                             <TouchableOpacity onPress={this.activeQR} style={styles.buttonScan}>
                                 <View style={styles.buttonWrapper}>
                                 <Image source={require('../../assets/camera.png')} style={{height: 36, width: 36}}></Image>
-                                <Text style={{...styles.buttonTextStyle, color: '#2196f3'}}>Scan QR Code</Text>
+                                <Text style={{...styles.buttonTextStyle, color: '#2196f3'}}>Escanear QR Code</Text>
                                 </View>
                             </TouchableOpacity>
                         </View>
                     }
                     {ScanResult &&
-                        <Fragment>
-                            <Text style={styles.textTitle1}>Result</Text>
+                        <ScrollView><Fragment>
+                            <Text style={styles.textTitle1}>Leitura</Text>
                             <View style={ScanResult ? styles.scanCardView : styles.cardView}>
-                                <Text>Type : {result.type}</Text>
-                                <Text>Result : {result.data}</Text>
-                                <Text numberOfLines={1}>RawData: {result.rawData}</Text>
+                                <Text>{result.data}</Text>
+                                <TouchableOpacity onPress={() => Clipboard.setString(result.data)} style={styles.buttonScan}>
+                                    <View style={styles.buttonWrapper}>
+                                        <Text style={{...styles.buttonTextStyle, color: '#2196f3'}}>Copiar</Text>
+                                    </View>
+                                </TouchableOpacity>
                                 <TouchableOpacity onPress={this.scanAgain} style={styles.buttonScan}>
                                     <View style={styles.buttonWrapper}>
                                         <Image source={require('../../assets/camera.png')} style={{height: 36, width: 36}}></Image>
-                                        <Text style={{...styles.buttonTextStyle, color: '#2196f3'}}>Click to scan again</Text>
+                                        <Text style={{...styles.buttonTextStyle, color: '#2196f3'}}>Clique para escanear outro QR Code</Text>
                                     </View>
                                 </TouchableOpacity>
+                                
+                            </View>
+                            <Text style={styles.textTitle1}>Resultado</Text>
+                            <View style={ScanResult ? styles.scanCardView : styles.cardView}>
+                            {!statusreceipt &&
+                                <Text>Totalizando...</Text>
+                            }
+                            {statusreceipt &&
+                            
+                                <Fragment>
+                                    {resultSC.map(({ key, value }) => <Text>({[key]}: {value})</Text>)} 
+                                </Fragment>
+                            }
                             </View>
                         </Fragment>
+                    </ScrollView>
                     }
                     {scan &&
                         <QRCodeScanner
@@ -94,7 +111,7 @@ class Scan extends Component {
                             onRead={this.onSuccess}
                             topContent={
                                 <Text style={styles.centerText}>
-                                   Please move your camera {"\n"} over the QR Code
+                                   Por favor, mova sua camêra {"\n"} sobre o QR Code
                                 </Text>
                             }
                             bottomContent={

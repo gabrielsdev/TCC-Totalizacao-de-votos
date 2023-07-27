@@ -1,6 +1,7 @@
 import "react-native-get-random-values";
 
 import "@ethersproject/shims";
+const {getParsedEthersError} = require("@enzoferey/ethers-error-parser");
 
 const { ethers } = require("ethers");
 const ABI = require('./abi.json');
@@ -15,12 +16,11 @@ const contract = new ethers.Contract("0x0452Ba0e7906c7a4fBC3909760F65a01dB9aa410
 const contractWithSigner = contract.connect(signer);
 
 
-const registrar = async (idHash, qrcode) => {
-    
     // let qrcode = "QRBU:1:2 VRQR:1.5 VRCH:20180618 ORIG:VOTA ORLC:LEG PROC:15000 DTPL:20181007 PLEI:15100 TURN:1 FASE:S UNFE:AC MUNI:1392 ZONA:9 SECA:16 AGRE:17.18.19.100 IDUE:1333898 IDCA:610860347874160324266426 VERS:6.28.2.1 LOCA:4 APTO:51 COMP:30 FALT:21 HBMA:0 DTAB:20181007 HRAB:173122 DTFC:20181007 HRFC:180755 IDEL:15103 CARG:6 TIPO:1 VERC:201807111207 PART:91 9101:1 9102:1 9103:1 9104:1 9105:1 LEGP:1 TOTP:6 PART:92 9201:1 9202:1 9203:1 9204:1 9205:1 LEGP:1 TOTP:6 PART:93 9301:1 9302:1 9303:1 9304:1 9305:1 LEGP:1 TOTP:6 PART:94 9401:1 9402:1 9403:1 9404:1 9405:1 LEGP:1 TOTP:6 PART:95 9501:1 9502:1 9503:1 9504:2 LEGP:1 TOTP:6 APTA:51 NOMI:25 LEGC:5 BRAN:0 NULO:0 TOTC:30 CARG:7 TIPO:1 VERC:201807111207 PART:91 91001:1 91002:1 91003:1 LEGP:3 TOTP:6 PART:92 92001:1 92002:1 92003:1 LEGP:3 TOTP:6 PART:93 93001:1 93002:1 93003:1 LEGP:3 TOTP:6 PART:94 94001:1 HASH:153DD1E96C876F062459DC9ACDF640D38BEBC4490C794826D8E7EB3CF4761BD39AFC560BAEF3895A9D3C59F16CDE61028DF07FED861234A0F91C7005AD94F797";
 
+const registrar = async (idHash, qrcode) => {
+    
     let tokens = qrcode.split(/ /).map(n => n.trim());
-
 
     function BU(idHash, assinaturaParte1, assinaturaParte2, proc, turno, pleito, dataPleito, unfe, municipio, zona, secao, qrs, quantQrsEsperado, cp) {
 
@@ -251,11 +251,20 @@ const registrar = async (idHash, qrcode) => {
         }
 
     }
-    console.log(bu);
-    console.log(eleicoes[0].cargos);
-    const promise = await contractWithSigner.registrar(bu, eleicoes, {gasLimit: 800000000});
-    const res = await promise.wait();
-    return {idHash, res};
+    var statusreceipt = 0;
+    var res = [];
+    try {
+        const promise = await contractWithSigner.registrar(bu, eleicoes, {gasLimit: 800000000});
+        const receipt = await promise.wait();
+        if (receipt.status === 1) {
+            statusreceipt = 1;
+            const event = receipt.events.find(event => event.event === 'QRCodeAdded');
+            const [hashSC] = event.args;
+            res = await contractWithSigner.bus(hashSC);
+        }
+    } catch (error) {}
+
+    return {idHash, statusreceipt, res};
 }
 
 module.exports = registrar;

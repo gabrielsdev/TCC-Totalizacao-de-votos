@@ -7,14 +7,18 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "postinstall": "react-native setup-ios-permissions && pod-install"
+    "postinstall": "react-native setup-ios-permissions && pod-install && patch-package"
   },
   "dependencies": {
+    "@enzoferey/ethers-error-parser": "^0.2.3",
     "@ethersproject/shims": "^5.7.0",
+    "@react-native-clipboard/clipboard": "^1.11.2",
+    "deprecated-react-native-prop-types": "^4.2.0",
     "ethers": "^5.7.2",
     "expo": "~48.0.18",
     "expo-splash-screen": "~0.18.2",
     "expo-status-bar": "~1.4.4",
+    "patch-package": "^7.0.2",
     "pod-install": "0.1.38",
     "react": "18.2.0",
     "react-native": "0.71.8",
