@@ -4,14 +4,17 @@ pragma solidity 0.8.18;
 
 error invalidQRPosition(uint positionExpected, uint8 positionReceived);
 
+/**
+ * @title Totalização de votos  
+ * @dev Contrato utilizado para totalizar os votos advindos do aplicativo de leitura de QR Code do boletim de urna
+ */
+
 contract Totalizacao {
 
     mapping(bytes32 => BU) public bus; // os hashes serão sempre diferentes, devido às identificações diferentes nas eleições, como o número do processo eleitoral e o pleito
         
     ProcessoEleitoral[] public listaProcessos; 
     mapping(uint128 => uint128) private indiceProcesso; // indice somado de 1. 0 indica inexistência
-
-// ---------------------------------------------
 
     struct ProcessoEleitoral {
         uint128 id; // número do processo eleitoral
@@ -64,7 +67,6 @@ contract Totalizacao {
         uint128 totalPartido;
         uint128[] candidatosPartido; // lista de candidatos do partido para o cargo
     }
-    
 
     struct BU {
         bytes32 idHash; // hash do conteúdo do primeiro QR Code
@@ -79,12 +81,12 @@ contract Totalizacao {
         uint128 zona;
         uint128 secao;
         QR[] qrs;
-        uint128 quantQrsEsperado; // quantidade de qr codes esperado
+        uint128 quantQrsEsperado; // quantidade de QR Codes esperado
         CheckPoint cp; // indica onde a inserção de um QR Code parou
     }
 
     struct QR {
-        uint8 posicao; // posição do qr code diante do conjunto de qrs codes
+        uint8 posicao; // posição do QR Code diante do conjunto de QR Codes
         string qr; // conteúdo completo do QR Code
     }
 
@@ -99,12 +101,17 @@ contract Totalizacao {
         CargoInfo[] cargos;
     }
 
-// ---------------------------------------------
 
     event QRCodeAdded(
         bytes32 hashBu,
         uint8 qrPosition
     );
+
+    /**
+     * @dev Registra as informações contidas em um QR Code 
+     * @param boletimUrna boletim de urna com o QR Code
+     * @param eleicoes resultado das eleições contidas em um QR Code
+     */
 
     function registrar(BU calldata boletimUrna, Eleicoes[] calldata eleicoes) 
     public 
@@ -203,6 +210,13 @@ contract Totalizacao {
         return hashBu;
     }
 
+    /**
+     * @dev Registra as informações contidas em um QR Code a partir do processo eleitoral (quando o processo ainda não foi registrado)
+     * @param boletimUrna boletim de urna com o QR Code
+     * @param eleicoes resultado das eleições contidas em um QR Code
+     * @param numProcesso número do processo eleitoral referente ao registro
+     */
+
     function registraProcesso(BU calldata boletimUrna, Eleicoes[] calldata eleicoes, uint128 numProcesso) private returns(bool) {
 
         uint128 posicaoProcesso = uint128(listaProcessos.length);
@@ -220,6 +234,13 @@ contract Totalizacao {
         return res;
     }
 
+    /**
+     * @dev Registra as informações contidas em um QR Code a partir do turno (quando o turno ainda não foi registrado)
+     * @param boletimUrna boletim de urna com o QR Code
+     * @param eleicoes resultado das eleições contidas em um QR Code
+     * @param posicaoProcesso posição do processo eleitoral na lista de processos eleitorais
+     */
+
     function registraTurno(BU calldata boletimUrna, Eleicoes[] calldata eleicoes, uint128 posicaoProcesso) private returns(bool) {
         
         Turno storage turno = listaProcessos[posicaoProcesso].turnos[boletimUrna.turno];
@@ -229,6 +250,13 @@ contract Totalizacao {
 
         return registraEleicoes(boletimUrna.idHash, eleicoes, turno);
     }
+
+    /**
+     * @dev Registra as informações contidas em um QR Code a partir das eleições (registra a eleição, caso não haja, e registra o resultado)
+     * @param idHash hash keccak256 do primeiro QR Code que aponta para o boletim de urna
+     * @param eleicoes resultado das eleições contidas em um QR Code
+     * @param turno novo endereço do contrato
+     */
 
     function registraEleicoes(bytes32 idHash, Eleicoes[] calldata eleicoes, Turno storage turno) private returns (bool) {
 
